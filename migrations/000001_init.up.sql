@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS projects (
 -- 3. user_projects (depends on: users, projects)
 CREATE TABLE IF NOT EXISTS user_projects (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     UUID        NOT NULL REFERENCES users(id),
-    project_id  UUID        NOT NULL REFERENCES projects(id),
+    user_id     UUID    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+project_id  UUID    NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     role        TEXT        NOT NULL
 );
 

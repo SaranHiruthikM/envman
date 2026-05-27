@@ -12,7 +12,8 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Port string
+	Port      string
+	JWTSecret string
 }
 
 type DBConfig struct {
@@ -23,7 +24,8 @@ func Load() *Config {
 	_ = godotenv.Load()
 	return &Config{
 		App: AppConfig{
-			Port: getEnvOptional("PORT", "8080"),
+			Port:      getEnvOptional("PORT", "8080"),
+			JWTSecret: getEnvRequired("JWT_SECRET"),
 		},
 		DB: DBConfig{
 			DBUrl: getEnvRequired("DB_URL"),
