@@ -52,13 +52,14 @@ func main() {
 	authHandler := auth.NewHandler(pool, tokenManager)
 	projectHandler := projects.NewHandler(pool)
 
-	// Registering auth routes
+	// Registering auth routes (Public routes)
 	mux.Post("/auth/login", authHandler.Login)
 	mux.Post("/auth/register", authHandler.Register)
 
+	// Auth Protected Routes
 	mux.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAuth(tokenManager))
-		r.Post("/projects", projectHandler.CreateProject)
+		r.Mount("/projects", projectHandler.Routes())
 	})
 
 	log.Printf("Server starting on port %s", cfg.App.Port)

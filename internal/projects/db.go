@@ -1,6 +1,10 @@
 package projects
 
-import "context"
+import (
+	"context"
+
+	"github.com/SaranHiruthikM/envman/internal/models"
+)
 
 func (h *Handler) createProject(ctx context.Context, userId, name string) (string, error) {
 	query1 := `INSERT INTO projects VALUES (
@@ -33,4 +37,17 @@ func (h *Handler) createProject(ctx context.Context, userId, name string) (strin
 	tx.Commit(ctx)
 
 	return projectId, nil
+}
+
+func (h *Handler) getProjectByID(ctx context.Context, projectID string) (*models.Project, error) {
+	query := `SELECT id, name, created_by, created_at from projects WHERE id=$1`
+
+	var project models.Project
+	err := h.db.QueryRow(ctx, query, projectID).Scan(&project.ID, &project.Name, &project.CreatedBy, &project.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &project, nil
+
 }
