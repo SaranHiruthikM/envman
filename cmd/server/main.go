@@ -11,6 +11,7 @@ import (
 	"github.com/SaranHiruthikM/envman/internal/config"
 	"github.com/SaranHiruthikM/envman/internal/db"
 	"github.com/SaranHiruthikM/envman/internal/middleware"
+	"github.com/SaranHiruthikM/envman/internal/projects"
 	"github.com/SaranHiruthikM/envman/internal/token"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
@@ -49,6 +50,7 @@ func main() {
 	// Managers and Handlers
 	tokenManager := token.NewManager(cfg.App.JWTSecret)
 	authHandler := auth.NewHandler(pool, tokenManager)
+	projectHandler := projects.NewHandler(pool)
 
 	// Registering auth routes
 	mux.Post("/auth/login", authHandler.Login)
@@ -56,7 +58,7 @@ func main() {
 
 	mux.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAuth(tokenManager))
-		// protected routes go here
+		r.Post("/projects", projectHandler.CreateProject)
 	})
 
 	log.Printf("Server starting on port %s", cfg.App.Port)

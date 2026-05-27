@@ -50,6 +50,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Json(w, http.StatusCreated, response.AuthResponse{Token: token})
+	response.Json(w, http.StatusCreated, AuthResponse{Token: token})
 
 }

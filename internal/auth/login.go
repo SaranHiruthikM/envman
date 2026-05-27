@@ -43,7 +43,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Json(w, http.StatusOK, response.AuthResponse{Token: token})
+	response.Json(w, http.StatusOK, AuthResponse{Token: token})
 
 }
 
