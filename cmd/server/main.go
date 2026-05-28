@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/SaranHiruthikM/envman/internal/audit"
 	"github.com/SaranHiruthikM/envman/internal/auth"
 	"github.com/SaranHiruthikM/envman/internal/config"
 	"github.com/SaranHiruthikM/envman/internal/db"
@@ -54,7 +55,8 @@ func main() {
 	authHandler := auth.NewHandler(pool, tokenManager)
 	memberHandler := members.NewHandler(pool)
 	secretHandler := secrets.NewHandler(pool)
-	projectHandler := projects.NewHandler(pool, memberHandler, secretHandler)
+	logsHandler := audit.NewHandler(pool)
+	projectHandler := projects.NewHandler(pool, memberHandler, secretHandler, logsHandler)
 
 	// Registering auth routes (Public routes)
 	mux.Post("/auth/login", authHandler.Login)

@@ -16,3 +16,11 @@ type Project struct {
 	CreatedBy string    `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type Logs struct {
+	ID        string    `json:"id"`
+	ProjectID string    `json:"project_id"`
+	PushedBy  string    `json:"pushed_by"`
+	SecretsID string    `json:"secrets_id"`
+	PushedAt  time.Time `json:"pushed_at"`
+}
