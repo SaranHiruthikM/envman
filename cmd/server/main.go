@@ -10,6 +10,7 @@ import (
 	"github.com/SaranHiruthikM/envman/internal/auth"
 	"github.com/SaranHiruthikM/envman/internal/config"
 	"github.com/SaranHiruthikM/envman/internal/db"
+	"github.com/SaranHiruthikM/envman/internal/members"
 	"github.com/SaranHiruthikM/envman/internal/middleware"
 	"github.com/SaranHiruthikM/envman/internal/projects"
 	"github.com/SaranHiruthikM/envman/internal/token"
@@ -50,13 +51,14 @@ func main() {
 	// Managers and Handlers
 	tokenManager := token.NewManager(cfg.App.JWTSecret)
 	authHandler := auth.NewHandler(pool, tokenManager)
-	projectHandler := projects.NewHandler(pool)
+	memberHandler := members.NewHandler(pool)
+	projectHandler := projects.NewHandler(pool, memberHandler)
 
 	// Registering auth routes (Public routes)
 	mux.Post("/auth/login", authHandler.Login)
 	mux.Post("/auth/register", authHandler.Register)
 
-	// Auth Protected Routes
+	// Projects Routes
 	mux.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAuth(tokenManager))
 		r.Mount("/projects", projectHandler.Routes())

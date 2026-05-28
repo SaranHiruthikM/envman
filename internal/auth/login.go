@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/SaranHiruthikM/envman/internal/common"
 	"github.com/SaranHiruthikM/envman/internal/response"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -21,7 +22,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.getUserByEmail(r.Context(), req.Email)
+	user, err := common.GetUserByEmail(r.Context(), h.db, req.Email)
 	if err != nil && err != pgx.ErrNoRows {
 		response.Error(w, http.StatusInternalServerError, "Something went wrong")
 		return
