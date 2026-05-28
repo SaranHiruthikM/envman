@@ -13,6 +13,7 @@ import (
 	"github.com/SaranHiruthikM/envman/internal/members"
 	"github.com/SaranHiruthikM/envman/internal/middleware"
 	"github.com/SaranHiruthikM/envman/internal/projects"
+	"github.com/SaranHiruthikM/envman/internal/secrets"
 	"github.com/SaranHiruthikM/envman/internal/token"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
@@ -52,7 +53,8 @@ func main() {
 	tokenManager := token.NewManager(cfg.App.JWTSecret)
 	authHandler := auth.NewHandler(pool, tokenManager)
 	memberHandler := members.NewHandler(pool)
-	projectHandler := projects.NewHandler(pool, memberHandler)
+	secretHandler := secrets.NewHandler(pool)
+	projectHandler := projects.NewHandler(pool, memberHandler, secretHandler)
 
 	// Registering auth routes (Public routes)
 	mux.Post("/auth/login", authHandler.Login)
