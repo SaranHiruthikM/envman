@@ -32,7 +32,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
-	log.Println("Connected to database")
 
 	// Migration Connection Code
 	migrateUrl := strings.Replace(cfg.DB.DBUrl, "postgres://", "pgx5://", 1)
@@ -45,8 +44,6 @@ func main() {
 	if err != nil && err != migrate.ErrNoChange {
 		log.Fatalf("Error running migrations: %v", err)
 	}
-
-	log.Println("Migrations applied")
 
 	mux := chi.NewMux()
 
@@ -67,8 +64,6 @@ func main() {
 		r.Use(middleware.RequireAuth(tokenManager))
 		r.Mount("/projects", projectHandler.Routes())
 	})
-
-	log.Printf("Server starting on port %s", cfg.App.Port)
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", cfg.App.Port), mux); err != nil {
 		log.Fatalf("Server failed to start: %v", err)

@@ -43,9 +43,7 @@ func (h *Handler) PushSecrets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("1 - role check passed")
 	err = h.pushSecrets(r.Context(), projectID, req.EncryptedBlob, userID)
-	log.Printf("2 - pushSecrets err: %v", err)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, "Something went wrong")
 		return
