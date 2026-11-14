@@ -28,10 +28,12 @@ func NewHandler(db *pgxpool.Pool, memberHandler *members.Handler, secretHandler 
 
 func (h *Handler) Routes() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/{id}", h.GetProjectByID)
+	r.Get("/{projectID}", h.GetProjectByID)
 	r.Post("/", h.CreateProject)
-	r.Mount("/{id}/members", h.memberHandler.Routes())
-	r.Mount("/{id}/secrets", h.secretHandler.Routes())
-	r.Mount("/{id}/audit-logs", h.logsHandler.Routes())
+	r.Post("/{projectID}/keys", h.memberHandler.SetSelfKey)
+	r.Get("/{projectID}/keys/me", h.memberHandler.GetSelfKey)
+	r.Mount("/{projectID}/members", h.memberHandler.Routes())
+	r.Mount("/{projectID}/secrets", h.secretHandler.Routes())
+	r.Mount("/{projectID}/audit-logs", h.logsHandler.Routes())
 	return r
 }

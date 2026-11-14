@@ -4,20 +4,17 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io"
 )
 
-// deriveKey creates a 32-byte AES key from the token using SHA-256
-func deriveKey(token string) []byte {
-	hash := sha256.Sum256([]byte(token))
-	return hash[:]
-}
-
-func Encrypt(plaintext, token string) (string, error) {
-	key := deriveKey(token)
+// EncryptBody encrypts the plaintext .env body with the project's 32-byte key
+// using AES-256-GCM. Output is base64(nonce||ciphertext||tag).
+func EncryptBody(plaintext string, key []byte) (string, error) {
+	if len(key) != 32 {
+		return "", fmt.Errorf("project key must be 32 bytes, got %d", len(key))
+	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -38,8 +35,10 @@ func Encrypt(plaintext, token string) (string, error) {
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-func Decrypt(encrypted, token string) (string, error) {
-	key := deriveKey(token)
+func DecryptBody(encrypted string, key []byte) (string, error) {
+	if len(key) != 32 {
+		return "", fmt.Errorf("project key must be 32 bytes, got %d", len(key))
+	}
 
 	data, err := base64.StdEncoding.DecodeString(encrypted)
 	if err != nil {

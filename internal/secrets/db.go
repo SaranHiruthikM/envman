@@ -2,50 +2,45 @@ package secrets
 
 import (
 	"context"
+	"fmt"
 )
 
-func (h *Handler) pushSecrets(ctx context.Context, projectID, encryptedData, userId string) error {
-	query1 := `INSERT INTO secrets VALUES (
-		gen_random_uuid(), $1, $2, $3, NOW()
-	) RETURNING id`
-
-	query2 := `INSERT INTO audit_logs VALUES (
-		gen_random_uuid(), $1, $2, $3, NOW()
-	)`
-
+func (h *Handler) pushSecrets(ctx context.Context, projectID, ciphertext, userID string) error {
 	tx, err := h.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = tx.Rollback(ctx) }()
 
-	var secret string
-
-	err = tx.QueryRow(ctx, query1, projectID, userId, encryptedData).Scan(&secret)
+	var secretID string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO secrets (id, project_id, pushed_by, encrypted_data, pushed_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, NOW()) RETURNING id`,
+		projectID, userID, ciphertext,
+	).Scan(&secretID)
 	if err != nil {
-		tx.Rollback(ctx)
 		return err
 	}
 
-	_, err = tx.Exec(ctx, query2, projectID, userId, secret)
+	_, err = tx.Exec(ctx, `
+		INSERT INTO audit_logs (id, project_id, pushed_by, secrets_id, pushed_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, NOW())`,
+		projectID, userID, secretID,
+	)
 	if err != nil {
-		tx.Rollback(ctx)
 		return err
 	}
 
-	tx.Commit(ctx)
-
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit failed: %w", err)
+	}
 	return nil
 }
 
 func (h *Handler) getSecrets(ctx context.Context, projectID string) (string, error) {
-	query := `SELECT encrypted_data FROM secrets WHERE project_id=$1 ORDER BY pushed_at DESC LIMIT 1`
-
-	var secret string
-
-	err := h.db.QueryRow(ctx, query, projectID).Scan(&secret)
-	if err != nil {
-		return "", err
-	}
-
-	return secret, nil
+	var ciphertext string
+	err := h.db.QueryRow(ctx,
+		`SELECT encrypted_data FROM secrets WHERE project_id=$1 ORDER BY pushed_at DESC LIMIT 1`,
+		projectID).Scan(&ciphertext)
+	return ciphertext, err
 }

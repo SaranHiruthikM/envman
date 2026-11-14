@@ -2,7 +2,6 @@ package secrets
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 
@@ -13,47 +12,51 @@ import (
 )
 
 func (h *Handler) PushSecrets(w http.ResponseWriter, r *http.Request) {
-	projectID := chi.URLParam(r, "id")
+	projectID := chi.URLParam(r, "projectID")
 	if projectID == "" {
 		response.Error(w, http.StatusBadRequest, "Missing URL params")
 		return
 	}
 
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+
 	var req PushSecretsRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "Malformed Request Body")
+	if err := dec.Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, "Malformed request body")
+		return
+	}
+	if req.Ciphertext == "" {
+		response.Error(w, http.StatusBadRequest, "ciphertext is required")
 		return
 	}
 
 	userID, ok := middleware.GetUserID(r)
 	if !ok {
-		response.Error(w, http.StatusUnauthorized, "Something went wrong")
+		response.Error(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 
 	role, err := permissions.GetUserRole(r.Context(), h.db, userID, projectID)
-	log.Printf("role: %s, err: %v", role, err)
 	if err != nil {
-		response.Error(w, http.StatusForbidden, "Not a part of requested project")
+		response.Error(w, http.StatusForbidden, "Not a member of this project")
 		return
 	}
-
 	if strings.ToLower(role) != "owner" && strings.ToLower(role) != "coordinator" {
-		response.Error(w, http.StatusForbidden, "Should be an owner or coordinator to push secrets")
+		response.Error(w, http.StatusForbidden, "Only owners or coordinators can push secrets")
 		return
 	}
 
-	err = h.pushSecrets(r.Context(), projectID, req.EncryptedBlob, userID)
-	if err != nil {
+	if err := h.pushSecrets(r.Context(), projectID, req.Ciphertext, userID); err != nil {
 		response.Error(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 
-	response.Json(w, http.StatusCreated, map[string]string{"message": "Successfully pushed secrets"})
+	response.Json(w, http.StatusCreated, map[string]string{"message": "Pushed"})
 }
 
 func (h *Handler) GetSecrets(w http.ResponseWriter, r *http.Request) {
-	projectID := chi.URLParam(r, "id")
+	projectID := chi.URLParam(r, "projectID")
 	if projectID == "" {
 		response.Error(w, http.StatusBadRequest, "Missing URL params")
 		return
@@ -61,21 +64,20 @@ func (h *Handler) GetSecrets(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := middleware.GetUserID(r)
 	if !ok {
-		response.Error(w, http.StatusUnauthorized, "Something went wrong")
+		response.Error(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 
-	_, err := permissions.GetUserRole(r.Context(), h.db, userID, projectID)
-	if err != nil {
-		response.Error(w, http.StatusForbidden, "Not a part of requested project")
+	if _, err := permissions.GetUserRole(r.Context(), h.db, userID, projectID); err != nil {
+		response.Error(w, http.StatusForbidden, "Not a member of this project")
 		return
 	}
 
-	secret, err := h.getSecrets(r.Context(), projectID)
+	ciphertext, err := h.getSecrets(r.Context(), projectID)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 
-	response.Json(w, http.StatusOK, map[string]string{"message": secret})
+	response.Json(w, http.StatusOK, map[string]string{"ciphertext": ciphertext})
 }

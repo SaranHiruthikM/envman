@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/SaranHiruthikM/envman/internal/cli"
 	"github.com/spf13/cobra"
@@ -13,24 +14,25 @@ var roleCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := cli.LoadGlobalConfig()
 		if err != nil {
-			return fmt.Errorf("not logged in — run envman login first")
+			return fmt.Errorf("not logged in — run `envman login` first")
 		}
-
 		proj, err := cli.LoadProjectConfig()
 		if err != nil {
-			return fmt.Errorf("no project linked — run envman init first")
+			return fmt.Errorf("no project linked — run `envman init` first")
 		}
 
 		userID, _ := cmd.Flags().GetString("user")
 		role, _ := cmd.Flags().GetString("role")
 
 		if userID == "" {
-			fmt.Print("User ID: ")
-			fmt.Scanln(&userID)
+			userID, _ = cli.Prompt("User ID: ")
 		}
 		if role == "" {
-			fmt.Print("New role (member/coordinator): ")
-			fmt.Scanln(&role)
+			role, _ = cli.Prompt("New role (member/coordinator): ")
+		}
+		role = strings.ToLower(role)
+		if role != "member" && role != "coordinator" {
+			return fmt.Errorf("role must be 'member' or 'coordinator'")
 		}
 
 		client := cli.NewClient(cfg.ApiURL)
@@ -38,13 +40,13 @@ var roleCmd = &cobra.Command{
 			return fmt.Errorf("role update failed: %w", err)
 		}
 
-		fmt.Printf("✓ Role updated to %s\n", role)
+		fmt.Println("Role updated to", role+".")
 		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(roleCmd)
-	roleCmd.Flags().String("user", "", "User ID to update")
-	roleCmd.Flags().String("role", "", "New role (member/coordinator)")
+	roleCmd.Flags().String("user", "", "user ID to update")
+	roleCmd.Flags().String("role", "", "new role (member/coordinator)")
 }

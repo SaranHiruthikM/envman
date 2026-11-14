@@ -2,48 +2,47 @@ package cli
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 func Diff(existing, incoming string) string {
-	existingMap := parseEnv(existing)
-	incomingMap := parseEnv(incoming)
+	existingMap, _ := godotenv.Unmarshal(existing)
+	incomingMap, _ := godotenv.Unmarshal(incoming)
 
-	var changes []string
+	if existingMap == nil {
+		existingMap = map[string]string{}
+	}
+	if incomingMap == nil {
+		incomingMap = map[string]string{}
+	}
 
+	var added, changed, removed []string
 	for key, newVal := range incomingMap {
 		oldVal, exists := existingMap[key]
-		if !exists {
-			changes = append(changes, fmt.Sprintf("  + %s=*** (new)", key))
-		} else if oldVal != newVal {
-			changes = append(changes, fmt.Sprintf("  ~ %s=*** (changed)", key))
+		switch {
+		case !exists:
+			added = append(added, fmt.Sprintf("  + %s=*** (new)", key))
+		case oldVal != newVal:
+			changed = append(changed, fmt.Sprintf("  ~ %s=*** (changed)", key))
 		}
 	}
-
 	for key := range existingMap {
 		if _, exists := incomingMap[key]; !exists {
-			changes = append(changes, fmt.Sprintf("  - %s (removed)", key))
+			removed = append(removed, fmt.Sprintf("  - %s (removed)", key))
 		}
 	}
 
-	if len(changes) == 0 {
+	sort.Strings(added)
+	sort.Strings(changed)
+	sort.Strings(removed)
+
+	all := append(added, changed...)
+	all = append(all, removed...)
+	if len(all) == 0 {
 		return ""
 	}
-
-	return "Changes:\n" + strings.Join(changes, "\n")
-}
-
-func parseEnv(content string) map[string]string {
-	result := make(map[string]string)
-	for _, line := range strings.Split(content, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) == 2 {
-			result[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
-		}
-	}
-	return result
+	return "Changes:\n" + strings.Join(all, "\n")
 }
